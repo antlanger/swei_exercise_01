@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.ML;
 using Microsoft.ML;
 using System;
 using System.Collections.Generic;
@@ -14,27 +15,11 @@ namespace ExampleREST.Controllers
     public class NumberPredictionController : ControllerBase
     {
 
-        private static Lazy<PredictionEngine<ApiInput, ApiPrediction>> PredictionEngine = new Lazy<PredictionEngine<ApiInput, ApiPrediction>>(CreatePredictionEngine);
+        private readonly PredictionEnginePool<ApiInput, ApiPrediction> _predictionEnginePool;
 
-        // For more info on consuming ML.NET models, visit https://aka.ms/mlnet-consume
-        // Method for consuming model in your app
-        public static ApiPrediction Predict(ApiInput input)
+        public NumberPredictionController(PredictionEnginePool<ApiInput, ApiPrediction> predictionEnginePool)
         {
-            ApiPrediction result = PredictionEngine.Value.Predict(input);
-            return result;
-        }
-
-        public static PredictionEngine<ApiInput, ApiPrediction> CreatePredictionEngine()
-        {
-            // Create new MLContext
-            MLContext mlContext = new MLContext();
-
-            // Load model & create prediction engine
-            string modelPath = @"C:\Technikum\SWEI\Uebung01\Uebung01\ExampleREST\MLModels\MLModel.zip";
-            ITransformer mlModel = mlContext.Model.Load(modelPath, out var modelInputSchema);
-            var predEngine = mlContext.Model.CreatePredictionEngine<ApiInput, ApiPrediction>(mlModel);
-
-            return predEngine;
+            _predictionEnginePool = predictionEnginePool;
         }
 
         // GET api/<NumberPredictionController>/5
@@ -42,8 +27,7 @@ namespace ExampleREST.Controllers
         public ApiPrediction Get(string id)
         {
 
-            var predictionEngine = CreatePredictionEngine();
-            var prediction = predictionEngine.Predict(new ApiInput
+            var prediction = _predictionEnginePool.Predict(modelName:"MLModel", new ApiInput
             {
                 ImageSource = id
             });
